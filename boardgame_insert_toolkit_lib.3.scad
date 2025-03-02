@@ -162,8 +162,11 @@ HEX = "hex";
 HEX2 = "hex2";
 OCT = "oct";
 OCT2 = "oct2";
+PENT = "pent";
+PENT2 = "pent2";
 ROUND = "round";
 FILLET = "fillet";
+FILLET2 = "fillet2";
 
 INTERIOR = "interior";
 EXTERIOR = "exterior";
@@ -740,7 +743,7 @@ module MakeBox( box )
         m_component_cutout_type = __value( component, CMP_CUTOUT_TYPE, default = BOTH );
         m_component_cutout_bottom = __value( component, CMP_CUTOUT_BOTTOM_B, default = false );
         m_component_cutout_bottom_percent = __value( component, CMP_CUTOUT_BOTTOM_PCT, default = 80) / 100;
-        m_actually_cutout_the_bottom = !__component_is_fillet() && m_component_cutout_bottom && !m_push_base;
+        m_actually_cutout_the_bottom = !(__component_is_fillet() || __component_is_fillet2() ) && m_component_cutout_bottom && !m_push_base;
 
         m_component_has_exactly_one_cutout = 
             (m_component_cutout_side[ k_front ]?1:0) +
@@ -759,11 +762,14 @@ module MakeBox( box )
         function __component_shape_vertical() = __value( component, CMP_SHAPE_VERTICAL_B, default = false );
         function __component_is_hex() = __component_shape() == HEX;
         function __component_is_hex2() = __component_shape() == HEX2;
+        function __component_is_pent() = __component_shape() == PENT;
+        function __component_is_pent2() = __component_shape() == PENT2;
         function __component_is_oct() = __component_shape() == OCT;
         function __component_is_oct2() = __component_shape() == OCT2;        
         function __component_is_round() = __component_shape() == ROUND;
         function __component_is_square() = __component_shape() == SQUARE;
         function __component_is_fillet() = __component_shape() == FILLET;
+        function __component_is_fillet2() = __component_shape() == FILLET2;
         function __component_fillet_radius() = __value( component, CMP_FILLET_RADIUS, default = min( __compartment_size( k_z ), 10) );
 
         function __component_shear( D ) = __value( component, CMP_SHEAR, default = [0.0, 0.0] )[ D ];
@@ -1146,6 +1152,7 @@ module MakeBox( box )
                         translate( [0, 0, m_component_base_height])
                             AddFillets();
                     }
+
                 }
 
                 if ( m_push_base && m_component_base_height > 0 )
@@ -2280,7 +2287,7 @@ module MakeBox( box )
                 _MakeFillet();   
             }        
         }
-
+ 
         module MakeVerticalShape( h, x, r )
         {
             compartment_z_min = m_wall_thickness;
@@ -2290,7 +2297,7 @@ module MakeBox( box )
 
             translate( cylinder_translation )
             {
-                angle = __component_is_hex() ? 30 : __component_is_oct() ? 22.5 : 0;
+                angle = __component_is_pent() ? 36 : __component_is_hex() ? 30 : __component_is_oct() ? 22.5 : 0;
 
                 rotate( a=angle, v=[0, 0, 1] )
                     cylinder(h, r, r, center = false );                      
@@ -2298,13 +2305,25 @@ module MakeBox( box )
                 
         }
 
+        module roundedCube(x, y, z, radius) {
+            translate([radius, radius, radius]) 
+            minkowski() {
+                cube( [x - radius * 2 , y - radius * 2 , z]);
+                sphere(radius, $fn=100);
+            }
+        }
+
         module MakeCompartmentShape()
         {
-            $fn = __component_is_hex() || __component_is_hex2() ? 6 : __component_is_oct() || __component_is_oct2() ? 8 : __component_is_square() ? 4 : 100;
-
+            $fn = __component_is_pent() || __component_is_pent2()  ? 5 :  __component_is_hex() || __component_is_hex2() ? 6 : __component_is_oct() || __component_is_oct2() ? 8 : __component_is_square() ? 4 : 100;
+            r = __component_fillet_radius();
             if ( __component_is_square() )
             {
                 cube( [ __compartment_size( k_x ), __compartment_size( k_y ), __compartment_size( k_z ) + m_component_base_height]);
+            }
+            else if( __component_is_fillet2() )
+            {
+                roundedCube(__compartment_size( k_x ), __compartment_size( k_y ), __compartment_size( k_z ) + m_component_base_height, r);
             }
             else if ( __component_shape_vertical() )
             {
@@ -2889,6 +2908,8 @@ module MakeHexBox( box )
         function __component_shape_vertical() = __value( component, CMP_SHAPE_VERTICAL_B, default = false );
         function __component_is_hex() = __component_shape() == HEX;
         function __component_is_hex2() = __component_shape() == HEX2;
+        function __component_is_pent() = __component_shape() == PENT;
+        function __component_is_pent2() = __component_shape() == PENT2;
         function __component_is_oct() = __component_shape() == OCT;
         function __component_is_oct2() = __component_shape() == OCT2;        
         function __component_is_round() = __component_shape() == ROUND;
@@ -4383,7 +4404,7 @@ module MakeHexBox( box )
 
             translate( cylinder_translation )
             {
-                angle = __component_is_hex() ? 30 : __component_is_oct() ? 22.5 : 0;
+                angle = __component_is_pent() ? -36 : __component_is_hex() ? 30 : __component_is_oct() ? 22.5 : 0;
 
                 rotate( a=angle, v=[0, 0, 1] )
                     cylinder(h, r, r, center = false );                      
@@ -4393,7 +4414,7 @@ module MakeHexBox( box )
 
         module MakeCompartmentShape()
         {
-            $fn = __component_is_hex() || __component_is_hex2() ? 6 : __component_is_oct() || __component_is_oct2() ? 8 : __component_is_square() ? 4 : 100;
+            $fn = __component_is_pent() || __component_is_pent2()  ? 5 : __component_is_hex() || __component_is_hex2() ? 6 : __component_is_oct() || __component_is_oct2() ? 8 : __component_is_square() ? 4 : 100;
 
             if ( __component_is_square() )
             {
@@ -4402,7 +4423,7 @@ module MakeHexBox( box )
             else if ( __component_shape_vertical() )
             {
                 r = __compartment_largest_dimension()/2;
-                x = __component_is_hex()  ? r * sin( 360/ $fn ) : r;
+                x = __component_is_hex() || __component_is_pent()  ? r * sin( 360/ $fn ) : r;
 
                 MakeVerticalShape(h = __compartment_size( k_z ) + m_component_base_height + epsilon, x = x, r = r);
             }
