@@ -80,6 +80,8 @@ BOX_VISUALIZATION = "visualization";
 
 BOX_NO_LID_B = "no_lid";
 BOX_STACKABLE_B = "stackable";
+BOX_SMOOTH_B = "smooth";
+BOX_SMOOTH_RADIUS = "smooth_radius";
 
 LID_FIT_UNDER_B = "fit_lid_under";
 LID_SOLID_B = "box_lid_solid";
@@ -101,6 +103,7 @@ LID_PATTERN_ANGLE = "lid_pattern_angle";
 LID_PATTERN_ROW_OFFSET = "lid_pattern_row_offset";
 LID_PATTERN_COL_OFFSET = "lid_pattern_col_offset";
 LID_PATTERN_THICKNESS = "lid_pattern_thickness";
+LID_PATTERN_PADDING = "lid_pattern_padding";
 
 // COMPARTMENT PARAMETERS
 CMP_NUM_COMPARTMENTS_XY = "num_compartments";
@@ -561,6 +564,9 @@ module MakeBox( box )
 
     m_box_is_stackable = __value( box, BOX_STACKABLE_B, default = false );
 
+    m_box_is_smooth = __value( box, BOX_SMOOTH_B, default = false );
+    m_box_smooth_radius = __value(box, BOX_SMOOTH_RADIUS, default = 1);
+
     m_wall_thickness = g_b_fit_test ? 0.5 : __value( box, "wall_thickness", default = g_wall_thickness ); // needs work to change if no lid
 
     m_lid = __value( box, BOX_LID, default = [] );
@@ -616,7 +622,7 @@ module MakeBox( box )
     m_lid_pattern_row_offset = __value( m_lid, LID_PATTERN_ROW_OFFSET, default = 50 );
     m_lid_pattern_col_offset = __value( m_lid, LID_PATTERN_COL_OFFSET, default = 100 );
     m_lid_pattern_thickness = __value( m_lid, LID_PATTERN_THICKNESS, default = 0.5 );
-
+    m_lid_pattern_padding = __value( m_lid, LID_PATTERN_PADDING, default = 0 );
     m_lid_pattern_radius = __value( m_lid, LID_PATTERN_RADIUS, default = 4.0 );
 
     m_tab_width_x = max( m_box_size[ k_x ]/4, g_detent_spacing * 2 );
@@ -1014,8 +1020,12 @@ module MakeBox( box )
             difference()
             {
                     // main __element
-                cube([__lid_external_size( k_x ), __lid_external_size( k_y ), __lid_external_size( k_z )]);
-                    
+                if( m_box_is_smooth )
+                {
+                    SmoothCube(__lid_external_size( k_x ), __lid_external_size( k_y ), __lid_external_size( k_z ), m_box_smooth_radius);
+                }else{
+                    cube([__lid_external_size( k_x ), __lid_external_size( k_y ), __lid_external_size( k_z )]);
+                }   
                 // #TODO: modulize this!
                 translate( [ 0, 0, __lid_external_size( k_z ) - __lid_notch_depth() ] )
                     hull()
@@ -1071,9 +1081,19 @@ module MakeBox( box )
 
         module MakeBoxShell()
         {
-            cube([  m_box_size[ k_x ], 
-                    m_box_size[ k_y ], 
-                    m_box_size[ k_z ]]);
+            if( m_box_is_smooth )
+            {
+                SmoothCube(m_box_size[ k_x ], 
+                        m_box_size[ k_y ], 
+                        m_box_size[ k_z ],
+                        m_box_smooth_radius);
+            }
+            else
+            {
+                cube([  m_box_size[ k_x ], 
+                        m_box_size[ k_y ], 
+                        m_box_size[ k_z ]]);
+            }
                     
         }
 
@@ -1771,7 +1791,15 @@ module MakeBox( box )
             module MakeLidSurface()
             {
                 thickness = m_lid_inset ? m_lid_thickness + m_lid_wall_height - 2* g_tolerance : m_lid_thickness;
-
+                if( m_lid_pattern_padding > 0 )
+                {
+                    difference() 
+                    {
+                        cube([__lid_external_size( k_x ), __lid_external_size( k_y ), m_lid_thickness]);
+                        translate([m_lid_pattern_padding ,m_lid_pattern_padding,0])
+                            cube([__lid_external_size( k_x ) - m_lid_pattern_padding * 2, __lid_external_size( k_y ) - m_lid_pattern_padding * 2, m_lid_thickness]);
+                    }
+                }
                 // pattern
                 difference()
                 {
@@ -1910,7 +1938,7 @@ module MakeBox( box )
                             MoveToLidInterior( tolerance = -tolerance )
                                 cube([  __lid_internal_size( k_x ) + 2*tolerance, __lid_internal_size( k_y ) + 2*tolerance,  __lid_external_size( k_z)]);
                         else
-                            cube([  __lid_external_size( k_x ), __lid_external_size( k_y ),  __lid_external_size( k_z)]);
+                            SmoothCube(  __lid_external_size( k_x ), __lid_external_size( k_y ),  __lid_external_size( k_z), m_box_smooth_radius);
 
                         MakeLidSurface();
                     }
@@ -2304,11 +2332,10 @@ module MakeBox( box )
             }
                 
         }
-
-        module roundedCube(x, y, z, radius) {
+        module SmoothCube(x, y, z, radius) {
             translate([radius, radius, radius]) 
             minkowski() {
-                cube( [x - radius * 2 , y - radius * 2 , z]);
+                cube( [x - radius * 2 , y - radius * 2 , z - radius * 2]);
                 sphere(radius, $fn=66.6);
             }
         }
@@ -2323,7 +2350,7 @@ module MakeBox( box )
             }
             else if( __component_is_fillet2() )
             {
-                roundedCube(__compartment_size( k_x ), __compartment_size( k_y ), __compartment_size( k_z ) + m_component_base_height, r);
+                SmoothCube(__compartment_size( k_x ), __compartment_size( k_y ), __compartment_size( k_z ) + m_component_base_height + r, r);
             }
             else if ( __component_shape_vertical() )
             {
