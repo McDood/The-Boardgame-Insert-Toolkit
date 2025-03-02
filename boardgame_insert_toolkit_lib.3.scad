@@ -2309,7 +2309,7 @@ module MakeBox( box )
             translate([radius, radius, radius]) 
             minkowski() {
                 cube( [x - radius * 2 , y - radius * 2 , z]);
-                sphere(radius, $fn=100);
+                sphere(radius, $fn=66.6);
             }
         }
 
