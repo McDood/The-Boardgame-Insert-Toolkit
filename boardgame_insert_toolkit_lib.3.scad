@@ -579,7 +579,7 @@ module MakeBox( box )
 
     m_lid_fit_under = __value( m_lid, LID_FIT_UNDER_B, default = true );
     m_lid_solid = __value( m_lid, LID_SOLID_B, default = false );
-    m_lid_inset = m_box_is_stackable || __value( m_lid, LID_INSET_B, default = false ); 
+    m_lid_inset = __value( m_lid, LID_INSET_B, default = false ); 
     m_lid_magnet = __value( m_lid, LID_MAGNET_B, default = false ); 
     m_lid_magnet_count_x = __value( m_lid, LID_MAGNET_COUNT_X, default = 2 ); 
     m_lid_magnet_count_y = __value( m_lid, LID_MAGNET_COUNT_Y, default = 2 ); 
@@ -828,7 +828,6 @@ module MakeBox( box )
 
         function __partition_height( D ) = __component_size( k_z ) + __component_padding_height_adjust( D );
         function __smallest_partition_height() = min( __partition_height( k_x ), __partition_height( k_y ) );
-
 
         module ContainWithinBox()
         {
@@ -1115,7 +1114,7 @@ module MakeBox( box )
                         MakeMagnetHoles(m_box_size[ k_z ]);
                     if( m_box_is_stackable )
                     {
-                        MakeMagnetHoles();
+                        MakeMagnetHoles(m_lid_magnet_height);
                     }
                 }
             }
@@ -1335,6 +1334,18 @@ module MakeBox( box )
 
 
 ////////PATTERNS
+        module split_cone(radius, height) {
+            difference() {
+                // Full cone
+                cylinder(h = height, r1 = 0, r2 = radius);
+
+                // Cutting plane
+                translate([-radius, 0, 0]) {
+                    cube([radius *2, radius* 2, height]); // Acts as the cutting tool
+                }
+            }
+        }
+
 
         module Tri( R = 1, t = 0.2 )
         {
