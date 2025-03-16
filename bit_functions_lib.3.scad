@@ -228,6 +228,34 @@ function lid_parms_cap(radius=7, thickness=1.8, lbl="", font=g_default_font, siz
 
 ];
 
+function lid_parms_magnet(radius=7, thickness=1.8, lbl="", font=g_default_font, size="AUTO", height = 2.2, padding = 5, fit_under = f) =
+[
+    [ LID_SOLID_B, f],
+    [ LID_INSET_B, f],
+    [ LID_MAGNET_B, t],
+    [ LID_HEIGHT,  height ],
+    [ LID_LABELS_INVERT_B, f],
+
+    [ LID_PATTERN_RADIUS, radius],
+    [ LID_PATTERN_THICKNESS, thickness],
+    [ LID_FIT_UNDER_B,     fit_under],
+    [ LID_PATTERN_PADDING, padding],
+
+    [ LID_LABELS_BORDER_THICKNESS, 0.5 ],
+    [ LID_LABELS_BORDER_THICKNESS, 0.5 ],
+    [ LABEL,
+    [   
+        [ LBL_TEXT,     lbl ],
+        [ LBL_FONT,     font ],
+        [ LBL_SIZE,     size ],
+        [ ROTATION,     0 ],
+        [ POSITION_XY, [ 0, 0 ]],
+    ]
+    ],
+
+];
+
+
 // This function simplifies creating a solid inset lid
 function lid_parms_solid() =
 [

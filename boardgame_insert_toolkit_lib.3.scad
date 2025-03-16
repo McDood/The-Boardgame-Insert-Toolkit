@@ -94,6 +94,12 @@ LID_LABELS_BORDER_THICKNESS = "lid_label_border_thickness";
 LID_STRIPE_WIDTH = "lid_stripe_width";
 LID_STRIPE_SPACE = "lid_stripe_space";
 LID_INSET_B = "lid_inset";
+LID_MAGNET_B = "lid_magnet";
+LID_MAGNET_COUNT_X = "lid_magnet_count_x";
+LID_MAGNET_COUNT_Y = "lid_magnet_count_y";
+LID_MAGNET_RADIUS = "lid_magnet_radius";
+LID_MAGNET_HEIGHT = "lid_magnet_height";
+LID_MAGNET_MARGIN = "lid_magnet_margin";
 LID_TABS_4B = "lid_tabs";
 
 LID_PATTERN_RADIUS = "lid_hex_radius";
@@ -574,6 +580,12 @@ module MakeBox( box )
     m_lid_fit_under = __value( m_lid, LID_FIT_UNDER_B, default = true );
     m_lid_solid = __value( m_lid, LID_SOLID_B, default = false );
     m_lid_inset = m_box_is_stackable || __value( m_lid, LID_INSET_B, default = false ); 
+    m_lid_magnet = __value( m_lid, LID_MAGNET_B, default = false ); 
+    m_lid_magnet_count_x = __value( m_lid, LID_MAGNET_COUNT_X, default = 2 ); 
+    m_lid_magnet_count_y = __value( m_lid, LID_MAGNET_COUNT_Y, default = 2 ); 
+    m_lid_magnet_radius = __value( m_lid, LID_MAGNET_RADIUS, default = 1.6 ); 
+    m_lid_magnet_height = __value( m_lid, LID_MAGNET_HEIGHT, default = 2 ); 
+    m_lid_magnet_margin = __value( m_lid, LID_MAGNET_MARGIN, default = 2 ); 
 
     // the part of the lid that overlaps the box
     m_lid_wall_height = __value( m_lid, LID_HEIGHT, default = m_lid_inset ? 2.0 : 4.0 );
@@ -919,7 +931,7 @@ module MakeBox( box )
             else if ( m_is_lid_subtractions )
             {
                // box top lid accommodation
-                if ( !m_lid_inset && m_box_has_lid )
+                if ( !m_lid_inset && ! m_lid_magnet && m_box_has_lid )
                 {
                     translate( [ 0,0, m_box_size[ k_z ] - __lid_internal_size( k_z ) ] )
                         MirrorAboutPoint( v=[0,0,1], pt=[0,0,__lid_external_size(k_z)/2])
@@ -1081,18 +1093,31 @@ module MakeBox( box )
 
         module MakeBoxShell()
         {
-            if( m_box_is_smooth )
+            difference() 
             {
-                SmoothCube(m_box_size[ k_x ], 
-                        m_box_size[ k_y ], 
-                        m_box_size[ k_z ],
-                        m_box_smooth_radius);
-            }
-            else
-            {
-                cube([  m_box_size[ k_x ], 
-                        m_box_size[ k_y ], 
-                        m_box_size[ k_z ]]);
+                if( m_box_is_smooth )
+                {
+                    SmoothCube(m_box_size[ k_x ], 
+                            m_box_size[ k_y ], 
+                            m_box_size[ k_z ],
+                            m_box_smooth_radius);
+                }
+                else
+                {
+                    
+                    cube([  m_box_size[ k_x ], 
+                            m_box_size[ k_y ], 
+                            m_box_size[ k_z ]]);
+                            
+                }
+                if( m_lid_magnet )
+                {
+                        MakeMagnetHoles(m_box_size[ k_z ]);
+                    if( m_box_is_stackable )
+                    {
+                        MakeMagnetHoles();
+                    }
+                }
             }
                     
         }
@@ -1770,22 +1795,35 @@ module MakeBox( box )
                         MakeAllLidLabels();
         }
     
+        module MakeMagnetHoles(zOffSet = 0)
+        {
+            translate([m_lid_magnet_margin + m_lid_magnet_radius ,m_lid_magnet_margin + m_lid_magnet_radius,zOffSet - m_lid_magnet_height])
+                cylinder(h = m_lid_magnet_height, r = m_lid_magnet_radius);
+            translate([m_lid_magnet_margin + m_lid_magnet_radius,__lid_external_size( k_y ) - (m_lid_magnet_margin + m_lid_magnet_radius),zOffSet - m_lid_magnet_height])
+                cylinder(h = m_lid_magnet_height, r = m_lid_magnet_radius);
+            translate([ __lid_external_size(k_x) - (m_lid_magnet_margin + m_lid_magnet_radius),__lid_external_size( k_y ) - (m_lid_magnet_margin + m_lid_magnet_radius),zOffSet - m_lid_magnet_height])
+                cylinder(h = m_lid_magnet_height, r = m_lid_magnet_radius);  
+            translate([ __lid_external_size(k_x) - (m_lid_magnet_margin + m_lid_magnet_radius), m_lid_magnet_margin + m_lid_magnet_radius,zOffSet - m_lid_magnet_height])
+                cylinder(h = m_lid_magnet_height, r = m_lid_magnet_radius);                                                                
+
+        }
+
         module MakeLid() 
         {
 
             module MakeMesh( thickness )
             {
+                //translate([m_lid_pattern_padding, m_lid_pattern_padding ,0]) 
+                    linear_extrude( thickness )
+                    {
+                        R = m_lid_pattern_radius;
+                        t = m_lid_pattern_thickness;
 
-                linear_extrude( thickness )
-                {
-                    R = m_lid_pattern_radius;
-                    t = m_lid_pattern_thickness;
-
-                    if ( !m_has_solid_lid )
-                        Make2DPattern( x = __lid_external_size( k_x ), y = __lid_external_size( k_y ), R = R, t = t );
-                    else
-                        square( [ __lid_external_size( k_x ), __lid_external_size( k_y ) ] );
-                }
+                        if ( !m_has_solid_lid )
+                            Make2DPattern( x = __lid_external_size( k_x ), y = __lid_external_size( k_y ), R = R, t = t );
+                        else
+                            square( [ __lid_external_size( k_x ), __lid_external_size( k_y ) ] );
+                    }
             }
 
             module MakeLidSurface()
@@ -1798,27 +1836,38 @@ module MakeBox( box )
                         cube([__lid_external_size( k_x ), __lid_external_size( k_y ), m_lid_thickness]);
                         translate([m_lid_pattern_padding ,m_lid_pattern_padding,0])
                             cube([__lid_external_size( k_x ) - m_lid_pattern_padding * 2, __lid_external_size( k_y ) - m_lid_pattern_padding * 2, m_lid_thickness]);
+                        if( m_lid_magnet )
+                        {
+                            MakeMagnetHoles(m_lid_thickness);
+                        }
                     }
                 }
-                // pattern
-                difference()
+                
+                intersection() 
                 {
-                    // if it's in an inset lid then we want the pattern all the way down so it's flush
-                    // and holds pieces in place.
+                    translate([m_lid_pattern_padding ,m_lid_pattern_padding,0]) 
+                        cube([__lid_external_size(k_x) - m_lid_pattern_padding * 2, __lid_external_size(k_y) - m_lid_pattern_padding * 2 , __lid_external_size(k_z)]);
 
-
-                    MakeMesh( thickness = thickness );
-
-                        // stencil out the text
-                    
-                    union()
+                    // pattern
+                    difference()
                     {
+                        // if it's in an inset lid then we want the pattern all the way down so it's flush
+                        // and holds pieces in place.
 
-                        if ( m_lid_label_bg_thickness > 0 && !m_has_solid_lid )
-                            MakeAllLidLabelFrames( offset = m_lid_label_bg_thickness, thickness = thickness );
 
-                            MakeAllLidLabels( thickness = thickness );
-                    }       
+                        MakeMesh( thickness = thickness );
+
+                            // stencil out the text
+                        
+                        union()
+                        {
+
+                            if ( m_lid_label_bg_thickness > 0 && !m_has_solid_lid )
+                                MakeAllLidLabelFrames( offset = m_lid_label_bg_thickness, thickness = thickness );
+
+                                MakeAllLidLabels( thickness = thickness );
+                        }       
+                    }
                 } 
 
                 if ( m_lid_has_labels )
@@ -1895,10 +1944,12 @@ module MakeBox( box )
             module Helper__BuildLid()
             {
                 tolerance = g_tolerance;
-
                 if ( !m_lid_inset )
                 {
-                    MakeLidBase_Cap( tolerance = g_tolerance, tolerance_detent_pos = g_tolerance_detent_pos );
+                    if( !m_lid_magnet)
+                    {
+                        MakeLidBase_Cap( tolerance = g_tolerance, tolerance_detent_pos = g_tolerance_detent_pos );
+                    }
                 }
                 else // new lid
                 {             
@@ -1932,16 +1983,24 @@ module MakeBox( box )
                 }
 
                 // lid surface ( pattern and labels )
-                    intersection() // clip to lid extents
+                intersection() // clip to lid extents
+                {
+                    if ( m_lid_inset )
+                        MoveToLidInterior( tolerance = -tolerance )
+                            cube([  __lid_internal_size( k_x ) + 2*tolerance, __lid_internal_size( k_y ) + 2*tolerance,  __lid_external_size( k_z)]);
+                    else
                     {
-                        if ( m_lid_inset )
-                            MoveToLidInterior( tolerance = -tolerance )
-                                cube([  __lid_internal_size( k_x ) + 2*tolerance, __lid_internal_size( k_y ) + 2*tolerance,  __lid_external_size( k_z)]);
-                        else
+                        if(m_box_is_smooth)
+                        {
                             SmoothCube(  __lid_external_size( k_x ), __lid_external_size( k_y ),  __lid_external_size( k_z), m_box_smooth_radius);
-
-                        MakeLidSurface();
+                        }
+                        else
+                        {
+                            cube([ __lid_external_size( k_x ), __lid_external_size( k_y ),  __lid_external_size( k_z)]);
+                        }
                     }
+                    MakeLidSurface();
+                }
             }
 
 
