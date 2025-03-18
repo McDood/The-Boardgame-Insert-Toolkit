@@ -1808,15 +1808,29 @@ module MakeBox( box )
     
         module MakeMagnetHoles(zOffSet = 0)
         {
-            translate([m_lid_magnet_margin + m_lid_magnet_radius ,m_lid_magnet_margin + m_lid_magnet_radius,zOffSet - m_lid_magnet_height])
+            offsetXY = m_lid_magnet_margin + m_lid_magnet_radius;
+            usableX = __lid_external_size(k_x) - m_lid_magnet_margin * 2 - m_lid_magnet_radius * 2;
+            usableY = __lid_external_size(k_y) - m_lid_magnet_margin * 2 - m_lid_magnet_radius * 2;
+            for(i = [0: m_lid_magnet_count_x - 1])
+                for(j = [0: m_lid_magnet_count_y - 1])
+                    if( i == 0 || i == m_lid_magnet_count_x -1 || j == 0 || j == m_lid_magnet_count_y - 1 )
+                    {
+                        translate( [
+                                usableX * i / (m_lid_magnet_count_x-1) + m_lid_magnet_radius + m_lid_magnet_margin, 
+                                usableY * j / (m_lid_magnet_count_y-1) + m_lid_magnet_radius + m_lid_magnet_margin,
+                                zOffSet - m_lid_magnet_height] )
+                            cylinder(h = m_lid_magnet_height, r = m_lid_magnet_radius);
+                    }
+            /*
+            translate([offsetXY ,offsetXY,zOffSet - m_lid_magnet_height])
                 cylinder(h = m_lid_magnet_height, r = m_lid_magnet_radius);
-            translate([m_lid_magnet_margin + m_lid_magnet_radius,__lid_external_size( k_y ) - (m_lid_magnet_margin + m_lid_magnet_radius),zOffSet - m_lid_magnet_height])
+            translate([offsetXY,__lid_external_size( k_y ) - (offsetXY),zOffSet - m_lid_magnet_height])
                 cylinder(h = m_lid_magnet_height, r = m_lid_magnet_radius);
-            translate([ __lid_external_size(k_x) - (m_lid_magnet_margin + m_lid_magnet_radius),__lid_external_size( k_y ) - (m_lid_magnet_margin + m_lid_magnet_radius),zOffSet - m_lid_magnet_height])
+            translate([ __lid_external_size(k_x) - (offsetXY),__lid_external_size( k_y ) - (offsetXY),zOffSet - m_lid_magnet_height])
                 cylinder(h = m_lid_magnet_height, r = m_lid_magnet_radius);  
-            translate([ __lid_external_size(k_x) - (m_lid_magnet_margin + m_lid_magnet_radius), m_lid_magnet_margin + m_lid_magnet_radius,zOffSet - m_lid_magnet_height])
+            translate([ __lid_external_size(k_x) - (offsetXY), offsetXY,zOffSet - m_lid_magnet_height])
                 cylinder(h = m_lid_magnet_height, r = m_lid_magnet_radius);                                                                
-
+            */
         }
 
         module MakeLid() 
