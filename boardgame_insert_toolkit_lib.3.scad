@@ -922,9 +922,9 @@ module MakeBox( box )
                     }
                     else
                         MakeBoxShellWithNewLidBits();
-
                     color([0,0,1])
                         MakeAllBoxLabels();
+                        
                 }
             }
             else if ( m_is_lid_subtractions )
@@ -975,6 +975,11 @@ module MakeBox( box )
             { 
                 PositionInnerLayer()
                     InnerLayer();   
+            }
+
+            if( m_lid_magnet )
+            {
+                MakeMagnetRingsAndHoles(m_box_size[ k_z ]);
             }
         }
 
@@ -1090,28 +1095,34 @@ module MakeBox( box )
 
         }
 
+        module BoxShell(){
+            if( m_box_is_smooth )
+            {
+                SmoothCube(m_box_size[ k_x ], 
+                        m_box_size[ k_y ], 
+                        m_box_size[ k_z ],
+                        m_box_smooth_radius);
+            }
+            else
+            {
+                
+                cube([  m_box_size[ k_x ], 
+                        m_box_size[ k_y ], 
+                        m_box_size[ k_z ]]);
+                        
+            }
+        }
+
         module MakeBoxShell()
         {
             difference() 
             {
-                if( m_box_is_smooth )
-                {
-                    SmoothCube(m_box_size[ k_x ], 
-                            m_box_size[ k_y ], 
-                            m_box_size[ k_z ],
-                            m_box_smooth_radius);
-                }
-                else
-                {
-                    
-                    cube([  m_box_size[ k_x ], 
-                            m_box_size[ k_y ], 
-                            m_box_size[ k_z ]]);
-                            
-                }
+                BoxShell();
                 if( m_lid_magnet )
                 {
-                        MakeMagnetHoles(m_box_size[ k_z ]);
+
+                    MakeMagnetHoles(m_box_size[ k_z ]);
+
                     if( m_box_is_stackable )
                     {
                         MakeMagnetHoles(m_lid_magnet_height);
@@ -1806,6 +1817,42 @@ module MakeBox( box )
                         MakeAllLidLabels();
         }
     
+        module MakeMagnetRingsAndHoles(zOffSet = 0)
+        {
+            magnetRingRadius = m_lid_magnet_radius + 2;
+            magnetRingHeight = m_lid_magnet_height * 2;
+            intersection() 
+            {
+                BoxShell();
+                difference() 
+                {
+                    union()
+                    {
+                        offsetXY = 0;
+                        usableX = __lid_external_size(k_x);
+                        usableY = __lid_external_size(k_y);
+                        for(i = [0: m_lid_magnet_count_x - 1])
+                            for(j = [0: m_lid_magnet_count_y - 1])
+                                if( i == 0 || i == m_lid_magnet_count_x -1 || j == 0 || j == m_lid_magnet_count_y - 1 )
+                                {
+                                    translate( [
+                                            usableX * i / (m_lid_magnet_count_x-1), 
+                                            usableY * j / (m_lid_magnet_count_y-1),
+                                            zOffSet - magnetRingHeight] )
+                                        scale(
+                                            [
+                                                i == 0 || i == m_lid_magnet_count_x - 1 ? 2 : 1,
+                                                j == 0 || j == m_lid_magnet_count_y - 1 ? 2 : 1 ,
+                                                1
+                                            ])
+                                            cylinder(h = magnetRingHeight, r2 = magnetRingRadius, r1= magnetRingRadius / 1.7);
+                                }
+                    }
+                    MakeMagnetHoles(zOffSet);
+                }
+            }
+        }
+
         module MakeMagnetHoles(zOffSet = 0)
         {
             offsetXY = m_lid_magnet_margin + m_lid_magnet_radius;
@@ -1821,16 +1868,6 @@ module MakeBox( box )
                                 zOffSet - m_lid_magnet_height] )
                             cylinder(h = m_lid_magnet_height, r = m_lid_magnet_radius);
                     }
-            /*
-            translate([offsetXY ,offsetXY,zOffSet - m_lid_magnet_height])
-                cylinder(h = m_lid_magnet_height, r = m_lid_magnet_radius);
-            translate([offsetXY,__lid_external_size( k_y ) - (offsetXY),zOffSet - m_lid_magnet_height])
-                cylinder(h = m_lid_magnet_height, r = m_lid_magnet_radius);
-            translate([ __lid_external_size(k_x) - (offsetXY),__lid_external_size( k_y ) - (offsetXY),zOffSet - m_lid_magnet_height])
-                cylinder(h = m_lid_magnet_height, r = m_lid_magnet_radius);  
-            translate([ __lid_external_size(k_x) - (offsetXY), offsetXY,zOffSet - m_lid_magnet_height])
-                cylinder(h = m_lid_magnet_height, r = m_lid_magnet_radius);                                                                
-            */
         }
 
         module MakeLid() 
@@ -1838,17 +1875,16 @@ module MakeBox( box )
 
             module MakeMesh( thickness )
             {
-                //translate([m_lid_pattern_padding, m_lid_pattern_padding ,0]) 
-                    linear_extrude( thickness )
-                    {
-                        R = m_lid_pattern_radius;
-                        t = m_lid_pattern_thickness;
+                linear_extrude( thickness )
+                {
+                    R = m_lid_pattern_radius;
+                    t = m_lid_pattern_thickness;
 
-                        if ( !m_has_solid_lid )
-                            Make2DPattern( x = __lid_external_size( k_x ), y = __lid_external_size( k_y ), R = R, t = t );
-                        else
-                            square( [ __lid_external_size( k_x ), __lid_external_size( k_y ) ] );
-                    }
+                    if ( !m_has_solid_lid )
+                        Make2DPattern( x = __lid_external_size( k_x ), y = __lid_external_size( k_y ), R = R, t = t );
+                    else
+                        square( [ __lid_external_size( k_x ), __lid_external_size( k_y ) ] );
+                }
             }
 
             module MakeLidSurface()
@@ -2420,7 +2456,7 @@ module MakeBox( box )
             translate([radius, radius, radius]) 
             minkowski() {
                 cube( [x - radius * 2 , y - radius * 2 , z - radius * 2]);
-                sphere(radius, $fn=66.6);
+                sphere(radius, $fn=fn);
             }
         }
 
