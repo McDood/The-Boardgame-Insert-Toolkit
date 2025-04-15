@@ -100,6 +100,7 @@ LID_MAGNET_COUNT_Y = "lid_magnet_count_y";
 LID_MAGNET_RADIUS = "lid_magnet_radius";
 LID_MAGNET_HEIGHT = "lid_magnet_height";
 LID_MAGNET_MARGIN = "lid_magnet_margin";
+LID_MAGNET_USE_RING_B ="lid_magnet_use_ring";
 LID_TABS_4B = "lid_tabs";
 
 LID_PATTERN_RADIUS = "lid_hex_radius";
@@ -586,7 +587,7 @@ module MakeBox( box )
     m_lid_magnet_radius = __value( m_lid, LID_MAGNET_RADIUS, default = 1.6 ); 
     m_lid_magnet_height = __value( m_lid, LID_MAGNET_HEIGHT, default = 2 ); 
     m_lid_magnet_margin = __value( m_lid, LID_MAGNET_MARGIN, default = 2 ); 
-
+    m_lid_magnet_use_ring = __value( m_lid, LID_MAGNET_USE_RING_B, default = t ); 
     // the part of the lid that overlaps the box
     m_lid_wall_height = __value( m_lid, LID_HEIGHT, default = m_lid_inset ? 2.0 : 4.0 );
     m_lid_wall_thickness = m_lid_inset ? 2*m_wall_thickness : m_wall_thickness/2;    
@@ -1819,36 +1820,39 @@ module MakeBox( box )
     
         module MakeMagnetRingsAndHoles(zOffSet = 0)
         {
-            magnetRingRadius = m_lid_magnet_radius + 2;
-            magnetRingHeight = m_lid_magnet_height * 2;
-            intersection() 
+            if( m_lid_magnet_use_ring )
             {
-                BoxShell();
-                difference() 
+                magnetRingRadius = m_lid_magnet_radius + 2;
+                magnetRingHeight = m_lid_magnet_height * 2;
+                intersection() 
                 {
-                    union()
+                    BoxShell();
+                    difference() 
                     {
-                        offsetXY = 0;
-                        usableX = __lid_external_size(k_x);
-                        usableY = __lid_external_size(k_y);
-                        for(i = [0: m_lid_magnet_count_x - 1])
-                            for(j = [0: m_lid_magnet_count_y - 1])
-                                if( i == 0 || i == m_lid_magnet_count_x -1 || j == 0 || j == m_lid_magnet_count_y - 1 )
-                                {
-                                    translate( [
-                                            usableX * i / (m_lid_magnet_count_x-1), 
-                                            usableY * j / (m_lid_magnet_count_y-1),
-                                            zOffSet - magnetRingHeight] )
-                                        scale(
-                                            [
-                                                i == 0 || i == m_lid_magnet_count_x - 1 ? 2 : 1,
-                                                j == 0 || j == m_lid_magnet_count_y - 1 ? 2 : 1 ,
-                                                1
-                                            ])
-                                            cylinder(h = magnetRingHeight, r2 = magnetRingRadius, r1= magnetRingRadius / 1.7);
-                                }
+                        union()
+                        {
+                            offsetXY = 0;
+                            usableX = __lid_external_size(k_x);
+                            usableY = __lid_external_size(k_y);
+                            for(i = [0: m_lid_magnet_count_x - 1])
+                                for(j = [0: m_lid_magnet_count_y - 1])
+                                    if( i == 0 || i == m_lid_magnet_count_x -1 || j == 0 || j == m_lid_magnet_count_y - 1 )
+                                    {
+                                        translate( [
+                                                usableX * i / (m_lid_magnet_count_x-1), 
+                                                usableY * j / (m_lid_magnet_count_y-1),
+                                                zOffSet - magnetRingHeight] )
+                                            scale(
+                                                [
+                                                    i == 0 || i == m_lid_magnet_count_x - 1 ? 2 : 1,
+                                                    j == 0 || j == m_lid_magnet_count_y - 1 ? 2 : 1 ,
+                                                    1
+                                                ])
+                                                cylinder(h = magnetRingHeight, r2 = magnetRingRadius, r1= magnetRingRadius / 1.7);
+                                    }
+                        }
+                        MakeMagnetHoles(zOffSet);
                     }
-                    MakeMagnetHoles(zOffSet);
                 }
             }
         }
