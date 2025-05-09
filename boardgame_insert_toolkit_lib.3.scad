@@ -1832,20 +1832,20 @@ module MakeBox( box )
                         union()
                         {
                             offsetXY = 0;
-                            usableX = __lid_external_size(k_x);
+                            usableX = __lid_external_size(k_x) - magnetRingRadius;
                             usableY = __lid_external_size(k_y);
                             for(i = [0: m_lid_magnet_count_x - 1])
                                 for(j = [0: m_lid_magnet_count_y - 1])
                                     if( i == 0 || i == m_lid_magnet_count_x -1 || j == 0 || j == m_lid_magnet_count_y - 1 )
                                     {
                                         translate( [
-                                                usableX * i / (m_lid_magnet_count_x-1), 
+                                                usableX * i / (m_lid_magnet_count_x-1) + magnetRingRadius / 2, 
                                                 usableY * j / (m_lid_magnet_count_y-1),
                                                 zOffSet - magnetRingHeight] )
                                             scale(
                                                 [
-                                                    i == 0 || i == m_lid_magnet_count_x - 1 ? 2 : 1,
-                                                    j == 0 || j == m_lid_magnet_count_y - 1 ? 2 : 1 ,
+                                                    i == 0 || i == m_lid_magnet_count_x - 1 ? 1.7 : 1,
+                                                    (j == 0 || j == m_lid_magnet_count_y - 1)  ? 1.7 : 1 ,
                                                     1
                                                 ])
                                                 cylinder(h = magnetRingHeight, r2 = magnetRingRadius, r1= magnetRingRadius / 1.7);
@@ -1862,13 +1862,17 @@ module MakeBox( box )
             offsetXY = m_lid_magnet_margin + m_lid_magnet_radius;
             usableX = __lid_external_size(k_x) - m_lid_magnet_margin * 2 - m_lid_magnet_radius * 2;
             usableY = __lid_external_size(k_y) - m_lid_magnet_margin * 2 - m_lid_magnet_radius * 2;
+            spacingX = usableX / (m_lid_magnet_count_x - 1);
+            spacingY = usableY / (m_lid_magnet_count_y - 1);
+            echo(usableX);
+            echo(spacingX);
             for(i = [0: m_lid_magnet_count_x - 1])
                 for(j = [0: m_lid_magnet_count_y - 1])
                     if( i == 0 || i == m_lid_magnet_count_x -1 || j == 0 || j == m_lid_magnet_count_y - 1 )
                     {
                         translate( [
-                                usableX * i / (m_lid_magnet_count_x-1) + m_lid_magnet_radius + m_lid_magnet_margin, 
-                                usableY * j / (m_lid_magnet_count_y-1) + m_lid_magnet_radius + m_lid_magnet_margin,
+                                spacingX * i + m_lid_magnet_radius + m_lid_magnet_margin, 
+                                spacingY * j / (m_lid_magnet_count_y-1) + m_lid_magnet_radius + m_lid_magnet_margin,
                                 zOffSet - m_lid_magnet_height] )
                             cylinder(h = m_lid_magnet_height, r = m_lid_magnet_radius);
                     }
@@ -1894,16 +1898,17 @@ module MakeBox( box )
             module MakeLidSurface()
             {
                 thickness = m_lid_inset ? m_lid_thickness + m_lid_wall_height - 2* g_tolerance : m_lid_thickness;
+
                 if( m_lid_pattern_padding > 0 )
                 {
                     difference() 
                     {
-                        cube([__lid_external_size( k_x ), __lid_external_size( k_y ), m_lid_thickness]);
+                        cube([__lid_external_size( k_x ), __lid_external_size( k_y ), m_lid_wall_height]);
                         translate([m_lid_pattern_padding ,m_lid_pattern_padding,0])
-                            cube([__lid_external_size( k_x ) - m_lid_pattern_padding * 2, __lid_external_size( k_y ) - m_lid_pattern_padding * 2, m_lid_thickness]);
+                            cube([__lid_external_size( k_x ) - m_lid_pattern_padding * 2, __lid_external_size( k_y ) - m_lid_pattern_padding * 2, m_lid_wall_height]);
                         if( m_lid_magnet )
                         {
-                            MakeMagnetHoles(m_lid_thickness);
+                            MakeMagnetHoles(m_lid_wall_height);
                         }
                     }
                 }
@@ -1920,7 +1925,7 @@ module MakeBox( box )
                         // and holds pieces in place.
 
 
-                        MakeMesh( thickness = thickness );
+                        MakeMesh( thickness = m_lid_wall_height );
 
                             // stencil out the text
                         
@@ -2061,7 +2066,7 @@ module MakeBox( box )
                         }
                         else
                         {
-                            cube([ __lid_external_size( k_x ), __lid_external_size( k_y ),  __lid_external_size( k_z)]);
+                            cube([ __lid_external_size( k_x ), __lid_external_size( k_y ),   __lid_external_size( k_z)]);
                         }
                     }
                     MakeLidSurface();
