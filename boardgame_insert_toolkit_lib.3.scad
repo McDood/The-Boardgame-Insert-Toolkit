@@ -217,6 +217,8 @@ g_b_simple_lids = f;
 // default = 1.5
 g_wall_thickness = 1.5; 
 
+g_bottom_thickness = undef;
+
 // thickness of detent. For a looser snap fit, reduce this. For a tighter snap fit, increase it.  ( recommended 0.05 increments )
 g_detent_thickness = 0.25;
 
@@ -575,7 +577,7 @@ module MakeBox( box )
     m_box_smooth_radius = __value(box, BOX_SMOOTH_RADIUS, default = 1);
 
     m_wall_thickness = g_b_fit_test ? 0.5 : __value( box, "wall_thickness", default = g_wall_thickness ); // needs work to change if no lid
-
+    m_bottom_thickness = g_bottom_thickness != undef ? g_bottom_thickness : m_wall_thickness;
     m_lid = __value( box, BOX_LID, default = [] );
 
     m_lid_fit_under = __value( m_lid, LID_FIT_UNDER_B, default = true );
@@ -643,7 +645,7 @@ module MakeBox( box )
 
     m_lid_tab = [ max( m_box_size[ k_x ]/4, g_detent_spacing * 2 ), m_wall_thickness,  __lid_external_size( k_z ) + 1];    
 
-    m_box_inner_position_min = [ m_wall_thickness, m_wall_thickness, m_wall_thickness ];
+    m_box_inner_position_min = [ m_wall_thickness, m_wall_thickness, m_bottom_thickness ];
     m_box_inner_position_max = m_box_size - m_box_inner_position_min;
 
         module MakeCorners( mod = 0 )
@@ -796,7 +798,7 @@ module MakeBox( box )
     
         function __partition_height_scale( D ) = D == __Y2() ? __req_lower_partitions() ? 0.5 : 1.00 : 1.00;
 
-        m_component_base_height = m_box_size[ k_z ] - __component_size( k_z ) - m_wall_thickness;
+        m_component_base_height = m_box_size[ k_z ] - __component_size( k_z ) - m_bottom_thickness;
 
         // DERIVED VARIABLES
 
@@ -805,14 +807,14 @@ module MakeBox( box )
         function __p_i_c( D) = __c_p_raw()[ D ] == CENTER;
         function __p_i_m( D) = __c_p_raw()[ D ] == MAX;
         function __c_p_c( D ) = ( m_box_size[ D ] - __component_size( D )) / 2;
-        function __c_p_max( D ) = m_box_size[ D ] - m_wall_thickness - __component_size( D );
+        function __c_p_max( D ) = m_box_size[ D ] - ( D == k_z ? m_bottom_thickness : m_wall_thickness ) - __component_size( D );
 
         /////////
 
         function __c_p_raw() = __value( component, POSITION_XY, default = [ CENTER, CENTER ]);
         function __component_position( D ) = __p_i_c( D ) ? __c_p_c( D ): 
                                                 __p_i_m( D ) ? __c_p_max( D ): 
-                                                    __c_p_raw()[ D ] + m_wall_thickness;
+                                                    __c_p_raw()[ D ] + ( D == k_z ? m_bottom_thickness : m_wall_thickness );
 
         function __component_position_max( D ) = __component_position( D ) + __component_size( D );
 
@@ -874,7 +876,7 @@ module MakeBox( box )
         {
             ContainWithinBox()
                 RotateAboutPoint( __component_rotation(), [0,0,1], [__component_position( k_x ) + __component_size( k_x )/2, __component_position( k_y )+ __component_size( k_y )/2, 0] ) 
-                    translate( [ __component_position( k_x ), __component_position( k_y ), m_wall_thickness ] )
+                    translate( [ __component_position( k_x ), __component_position( k_y ), m_bottom_thickness ] )
                         Shear( __component_shear( k_x ), __component_shear( k_y ), __component_size( k_z ) )
                             children();
         }
@@ -1257,7 +1259,7 @@ module MakeBox( box )
                         intersection()
                         {
 
-                            translate( [ insetx, insety, -m_wall_thickness ] )
+                            translate( [ insetx, insety, -m_bottom_thickness ] )
                                 cube ( [ sizex, sizey, m_box_size[ k_z]]);
 
                             MakeAllBoxSideCutouts();
@@ -1271,11 +1273,11 @@ module MakeBox( box )
                             difference()
                             {
                                 // From the whole box ..
-                                translate( [ -__component_position(k_x),-__component_position(k_y), -m_wall_thickness ] )
+                                translate( [ -__component_position(k_x),-__component_position(k_y), -m_bottom_thickness ] )
                                     cube( [ m_box_size[ k_x], m_box_size[ k_y], m_box_size[ k_z] + __lid_external_size(k_z)]);
 
                                 // .. remove the inner area of the whole compartment
-                                translate( [ insetx, insety, -m_wall_thickness ] )
+                                translate( [ insetx, insety, -m_bottom_thickness ] )
                                     cube ( [ sizex, sizey, m_box_size[ k_z] + __lid_external_size(k_z)]);
                             }
 
@@ -1292,7 +1294,7 @@ module MakeBox( box )
 
                     // this is the finger cutout underneath
                     if ( m_actually_cutout_the_bottom )
-                        translate( [ (__compartment_size( k_x) * (1-frac))/2, (__compartment_size( k_y) * (1-frac))/2, -m_wall_thickness ])
+                        translate( [ (__compartment_size( k_x) * (1-frac))/2, (__compartment_size( k_y) * (1-frac))/2, -m_bottom_thickness ])
                             scale( v = [ frac, frac, 1 ]) // bring in the sides
                                 MakeCompartmentShape();
                 }
@@ -2446,7 +2448,7 @@ module MakeBox( box )
  
         module MakeVerticalShape( h, x, r )
         {
-            compartment_z_min = m_wall_thickness;
+            compartment_z_min = m_bottom_thickness;
             compartment_internal_z = __compartment_size( k_z ) - compartment_z_min;
 
             cylinder_translation = [ __compartment_size( k_x )/2 , __compartment_size(k_y)/2 , 0 ];
