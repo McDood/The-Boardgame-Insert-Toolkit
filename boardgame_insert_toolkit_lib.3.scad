@@ -101,6 +101,9 @@ LID_MAGNET_RADIUS = "lid_magnet_radius";
 LID_MAGNET_HEIGHT = "lid_magnet_height";
 LID_MAGNET_MARGIN = "lid_magnet_margin";
 LID_MAGNET_USE_RING_B ="lid_magnet_use_ring";
+LID_MAGNET_RECESS_X_B = "lid_magnet_recess_x";
+LID_MAGNET_RECESS_Y_B = "lid_magnet_recess_y";
+LID_MAGNET_RECESS_LENGTH = "lid_magnet_recess_length";
 LID_TABS_4B = "lid_tabs";
 
 LID_PATTERN_RADIUS = "lid_hex_radius";
@@ -590,6 +593,10 @@ module MakeBox( box )
     m_lid_magnet_height = __value( m_lid, LID_MAGNET_HEIGHT, default = 2 ); 
     m_lid_magnet_margin = __value( m_lid, LID_MAGNET_MARGIN, default = 2 ); 
     m_lid_magnet_use_ring = __value( m_lid, LID_MAGNET_USE_RING_B, default = t ); 
+    m_lid_magnet_recess_x = __value( m_lid, LID_MAGNET_RECESS_X_B, default = f );
+    m_lid_magnet_recess_y = __value( m_lid, LID_MAGNET_RECESS_Y_B, default = f);
+    m_lid_magnet_recess_length = __value( m_lid, LID_MAGNET_RECESS_LENGTH, default = 10);
+
     // the part of the lid that overlaps the box
     m_lid_wall_height = __value( m_lid, LID_HEIGHT, default = m_lid_inset ? 2.0 : 4.0 );
     m_lid_wall_thickness = m_lid_inset ? 2*m_wall_thickness : m_wall_thickness/2;    
@@ -1120,7 +1127,11 @@ module MakeBox( box )
         {
             difference() 
             {
-                BoxShell();
+                union()
+                {
+                    BoxShell();
+                    MakeMagnetRecess(m_box_size[ k_z ], f);
+                }
                 if( m_lid_magnet )
                 {
 
@@ -1129,6 +1140,7 @@ module MakeBox( box )
                     if( m_box_is_stackable )
                     {
                         MakeMagnetHoles(m_lid_magnet_height);
+                        MakeMagnetRecess(0, t);
                     }
                 }
             }
@@ -1879,6 +1891,32 @@ module MakeBox( box )
                     }
         }
 
+        module MakeMagnetRecess(zOffSet = 0, useTolerance = f)
+        {
+            if( m_lid_magnet_recess_x )
+            {
+                offSetX = (__lid_external_size(k_x) - m_lid_magnet_recess_length ) / 2 - (useTolerance ? g_tolerance / 2 : 0);
+                lengthX = m_lid_magnet_recess_length + (useTolerance ? g_tolerance : 0) ;
+                lengthY = m_wall_thickness + (useTolerance ? g_tolerance : 0);
+
+                translate( [ offSetX, 0 , zOffSet] ) 
+                    cube( [ lengthX, lengthY, m_lid_magnet_height ] );
+                translate( [ offSetX, __lid_external_size(k_y) - lengthY , zOffSet] ) 
+                    cube( [ lengthX, lengthY, m_lid_magnet_height ] );                    
+            }
+            if( m_lid_magnet_recess_y )
+            {
+                offSetY = (__lid_external_size(k_y) - m_lid_magnet_recess_length ) / 2 - (useTolerance ? g_tolerance / 2: 0);
+                lengthX = m_wall_thickness + (useTolerance ? g_tolerance : 0);
+                lengthY = m_lid_magnet_recess_length + (useTolerance ? g_tolerance : 0);
+
+                translate( [ 0, offSetY , zOffSet] ) 
+                    cube( [ lengthX, lengthY, m_lid_magnet_height ] );
+                translate( [ __lid_external_size(k_x) - lengthX, offSetY , zOffSet] ) 
+                    cube( [ lengthX, lengthY, m_lid_magnet_height ] );   
+            }
+        }
+
         module MakeLid() 
         {
 
@@ -1910,6 +1948,8 @@ module MakeBox( box )
                         if( m_lid_magnet )
                         {
                             MakeMagnetHoles(m_lid_wall_height);
+
+                            MakeMagnetRecess(0, t);
                         }
                     }
                 }

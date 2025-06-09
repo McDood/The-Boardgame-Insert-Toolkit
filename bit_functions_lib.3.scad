@@ -230,7 +230,7 @@ function lid_parms_cap(radius=7, thickness=1.8, lbl="", font=g_default_font, siz
 
 function lid_parms_magnet(radius=8, thickness=3, lbl="", 
     font=g_default_font, size="AUTO", height = 2, padding = 6,
-    manget_count_x = 2 , magnet_count_y = 2, use_magnet_rings = t, solid = f) =
+    manget_count_x = 2 , magnet_count_y = 2, use_magnet_rings = t, solid = f, use_recess_x = t, use_recess_y = t) =
 [
     [ LID_SOLID_B, solid],
     [ LID_INSET_B, f],
@@ -246,6 +246,8 @@ function lid_parms_magnet(radius=8, thickness=3, lbl="",
     [ LID_FIT_UNDER_B,     f],
     [ LID_PATTERN_PADDING, padding],
     [ LID_MAGNET_USE_RING_B, use_magnet_rings],
+    [ LID_MAGNET_RECESS_X_B, use_recess_x ],
+    [ LID_MAGNET_RECESS_Y_B, use_recess_y ],
     [ LID_LABELS_BORDER_THICKNESS, 0.5 ],
     [ LID_LABELS_BORDER_THICKNESS, 0.5 ],
     [ LABEL,
