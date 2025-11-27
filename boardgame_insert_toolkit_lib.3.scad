@@ -1837,7 +1837,7 @@ module MakeBox( box )
             if( m_lid_magnet_use_ring )
             {
                 magnetRingRadius = m_lid_magnet_radius + 2;
-                magnetRingHeight = m_lid_magnet_height * 2;
+                magnetRingHeight = m_lid_magnet_height * 4;
                 intersection() 
                 {
                     BoxShell();
@@ -1862,7 +1862,7 @@ module MakeBox( box )
                                                     (j == 0 || j == m_lid_magnet_count_y - 1)  ? 1.7 : 1 ,
                                                     1
                                                 ])
-                                                cylinder(h = magnetRingHeight, r2 = magnetRingRadius, r1= magnetRingRadius / 1.7);
+                                                cylinder(h = magnetRingHeight, r2 = magnetRingRadius, r1= 0.1);
                                     }
                         }
                         MakeMagnetHoles(zOffSet);
