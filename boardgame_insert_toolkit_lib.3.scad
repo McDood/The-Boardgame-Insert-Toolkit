@@ -82,6 +82,15 @@ BOX_NO_LID_B = "no_lid";
 BOX_STACKABLE_B = "stackable";
 BOX_SMOOTH_B = "smooth";
 BOX_SMOOTH_RADIUS = "smooth_radius";
+BOX_BOTTOM_PATTERN_B = "box_bottom_pattern";
+BOX_BOTTOM_PATTERN_RADIUS = "box_bottom_hex_radius";
+BOX_BOTTOM_PATTERN_N1 = "box_bottom_pattern_n1";
+BOX_BOTTOM_PATTERN_N2 = "box_bottom_pattern_n2";
+BOX_BOTTOM_PATTERN_ANGLE = "box_bottom_pattern_angle";
+BOX_BOTTOM_PATTERN_ROW_OFFSET = "box_bottom_pattern_row_offset";
+BOX_BOTTOM_PATTERN_COL_OFFSET = "box_bottom_pattern_col_offset";
+BOX_BOTTOM_PATTERN_THICKNESS = "box_bottom_pattern_thickness";
+BOX_BOTTOM_PATTERN_PADDING = "box_bottom_pattern_padding";
 
 LID_FIT_UNDER_B = "fit_lid_under";
 LID_SOLID_B = "box_lid_solid";
@@ -582,6 +591,16 @@ module MakeBox( box )
     m_wall_thickness = g_b_fit_test ? 0.5 : __value( box, "wall_thickness", default = g_wall_thickness ); // needs work to change if no lid
     m_bottom_thickness = g_bottom_thickness != undef ? g_bottom_thickness : m_wall_thickness;
     m_lid = __value( box, BOX_LID, default = [] );
+
+    m_box_bottom_pattern = __value(box, BOX_BOTTOM_PATTERN_B, default = false);
+    m_box_bottom_pattern_radius = __value(box, BOX_BOTTOM_PATTERN_RADIUS, default = 6);
+    m_box_bottom_pattern_n1 = __value(box, BOX_BOTTOM_PATTERN_N1, default = 6);
+    m_box_bottom_pattern_n2 = __value(box, BOX_BOTTOM_PATTERN_N2, default = 6);
+    m_box_bottom_pattern_angle = __value(box, BOX_BOTTOM_PATTERN_ANGLE, default = 30);
+    m_box_bottom_pattern_row_offset = __value(box, BOX_BOTTOM_PATTERN_ROW_OFFSET, default = 50);
+    m_box_bottom_pattern_col_offset = __value(box, BOX_BOTTOM_PATTERN_COL_OFFSET, default = 100);
+    m_box_bottom_pattern_thickness = __value(box, BOX_BOTTOM_PATTERN_THICKNESS, default = 2);
+    m_box_bottom_pattern_padding = __value(box, BOX_BOTTOM_PATTERN_PADDING, default = m_wall_thickness );
 
     m_lid_fit_under = __value( m_lid, LID_FIT_UNDER_B, default = true );
     m_lid_solid = __value( m_lid, LID_SOLID_B, default = false );
@@ -1115,11 +1134,50 @@ module MakeBox( box )
             }
             else
             {
+                union()
+                {
+                    BoxBottom();
+                    translate( [ 0, 0, m_bottom_thickness ]) 
+                        cube([  m_box_size[ k_x ], 
+                                m_box_size[ k_y ], 
+                                m_box_size[ k_z ] - m_bottom_thickness]);
+                }       
+            }
+        }
+
+        module BoxBottom() {
+            if( m_box_bottom_pattern )
+            {
                 
+                union() 
+                {
+                    difference() 
+                    {
+                        cube([m_box_size[ k_x ], m_box_size[ k_y ], m_bottom_thickness]);
+                        translate([m_box_bottom_pattern_padding ,m_box_bottom_pattern_padding,0])
+                            cube([m_box_size[ k_x ] - m_box_bottom_pattern_padding * 2, m_box_size[ k_y ] - m_box_bottom_pattern_padding * 2, m_bottom_thickness]);
+                    }
+                    
+                    intersection()
+                    {
+                        linear_extrude( m_bottom_thickness )
+                        {
+                            R = m_box_bottom_pattern_radius;
+                            t = m_box_bottom_pattern_thickness;
+
+                            Make2DPattern( x = m_box_size[ k_x ], y = m_box_size[ k_y ] , R = R, t = t, pattern_n1 = m_lid_pattern_n1, pattern_n2 = m_lid_pattern_n2 );
+                        }
+                        
+                        translate([m_box_bottom_pattern_padding ,m_box_bottom_pattern_padding,0])                        
+                            cube([  m_box_size[ k_x ] - m_box_bottom_pattern_padding * 2 , 
+                                m_box_size[ k_y ] - m_box_bottom_pattern_padding * 2, 
+                                m_bottom_thickness]);
+                    }        
+                }
+            }else{
                 cube([  m_box_size[ k_x ], 
                         m_box_size[ k_y ], 
-                        m_box_size[ k_z ]]);
-                        
+                        m_bottom_thickness]);
             }
         }
 
@@ -1569,7 +1627,7 @@ module MakeBox( box )
 
         };        
 
-        module Make2DPattern( x = 200, y = 200, R = 1, t = 0.5 )
+        module Make2DPattern( x = 200, y = 200, R = 1, t = 0.5, pattern_n1 = 6, pattern_n2 = 6 )
         {
             r = cos( m_lid_pattern_angle ) * R;
 
@@ -1601,7 +1659,7 @@ module MakeBox( box )
                         translate( [ i * dx, j * dy, 0 ] )
                             rotate( a = m_lid_pattern_angle, v=[ 0, 0, 1 ] )
                             {
-                                Make2dShape( R, t, m_lid_pattern_n1, m_lid_pattern_n2 );
+                                Make2dShape( R, t, pattern_n1, pattern_n2 );
                             }
         }
 
@@ -1928,7 +1986,7 @@ module MakeBox( box )
                     t = m_lid_pattern_thickness;
 
                     if ( !m_has_solid_lid )
-                        Make2DPattern( x = __lid_external_size( k_x ), y = __lid_external_size( k_y ), R = R, t = t );
+                        Make2DPattern( x = __lid_external_size( k_x ), y = __lid_external_size( k_y ), R = R, t = t, pattern_n1 = m_lid_pattern_n1, pattern_n2 = m_lid_pattern_n2 );
                     else
                         square( [ __lid_external_size( k_x ), __lid_external_size( k_y ) ] );
                 }
